@@ -8,9 +8,11 @@ const GEMINI_MODEL = 'gemini-2.0-flash';
 function geminiUrl(k) { return `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${k}`; }
 function geminiStreamUrl(k) { return `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:streamGenerateContent?alt=sse&key=${k}`; }
 
+const DEFAULT_KEY = 'AIzaSyD861dpHPwJCtr8WEq1V__eD3uq_xc5wz8';
+
 function getApiKey() {
     if (typeof MEDAI_CONFIG !== 'undefined' && MEDAI_CONFIG.key) return MEDAI_CONFIG.key;
-    return localStorage.getItem('medai_api_key') || '';
+    return localStorage.getItem('medai_api_key') || DEFAULT_KEY;
 }
 function setApiKey(key) { localStorage.setItem('medai_api_key', key); }
 function getProvider(key) {
@@ -113,7 +115,7 @@ async function _geminiStream(key, messages, onChunk) {
 async function _err(r) {
     const t = await r.text(); let m = `API Error ${r.status}`;
     try { const j = JSON.parse(t); m = j.error?.message || j.error?.status || m; } catch(e) {}
-    if ([400,401,403].includes(r.status)) { m = 'Invalid API key. Please update your key.'; localStorage.removeItem('medai_api_key'); updateApiStatus(false); }
+    if ([401,403].includes(r.status)) { m = 'Invalid API key. Please update your key.'; updateApiStatus(false); }
     throw new Error(m);
 }
 
@@ -230,16 +232,16 @@ document.addEventListener('DOMContentLoaded', ()=>{ document.getElementById('key
 
 async function checkApiHealth() {
     const key=getApiKey();
-    if (!key) { updateApiStatus(false); setTimeout(()=>{ const m=document.getElementById('keyModal'); if(m&&!m.classList.contains('active')) m.classList.add('active'); },600); return; }
+    if (!key) { updateApiStatus(false); document.getElementById('keyModal')?.classList.add('active'); return; }
     const prov=getProvider(key);
     try {
         let r;
         if (prov==='claude') { r=await fetch(CLAUDE_URL,{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:10,messages:[{role:'user',content:'ping'}]})}); }
         else { r=await fetch(geminiUrl(key),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{role:'user',parts:[{text:'ping'}]}],generationConfig:{maxOutputTokens:10}})}); }
-        updateApiStatus(r.ok); if(!r.ok) localStorage.removeItem('medai_api_key');
+        updateApiStatus(r.ok);
     } catch { updateApiStatus(false); }
 }
-setTimeout(checkApiHealth, 800);
+setTimeout(checkApiHealth, 500);
 
 // ── SCROLL ANIMATIONS ──
 const observer=new IntersectionObserver((entries)=>{ entries.forEach(e=>{ if(e.isIntersecting){e.target.style.opacity='1';e.target.style.transform='translateY(0)';} }); },{threshold:0.1,rootMargin:'0px 0px -30px 0px'});
