@@ -29,7 +29,7 @@
                 <a href="#" onclick="showPage('medications');return false">Medications</a>
             </div>
             <div class="nav-end">
-                <div class="api-status" id="apiStatus">
+                <div class="api-status" id="apiStatus" onclick="promptApiKey()" style="cursor:pointer" title="Click to set API key">
                     <span class="status-dot"></span>
                     <span>AI Online</span>
                 </div>
@@ -354,6 +354,21 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- API KEY MODAL -->
+    <div class="key-modal-overlay" id="keyModal">
+        <div class="key-modal">
+            <div class="key-modal-icon">
+                <svg viewBox="0 0 48 48" fill="none"><rect x="4" y="4" width="40" height="40" rx="12" fill="var(--terra-glow)"/><path d="M24 14v10M24 28v2" stroke="var(--terra)" stroke-width="3" stroke-linecap="round"/></svg>
+            </div>
+            <h3>API Key Required</h3>
+            <p>MedAI needs an Anthropic API key to power the AI analysis. Your key is stored locally in your browser only.</p>
+            <input type="password" id="keyInput" class="key-input" placeholder="sk-ant-api03-..." autocomplete="off">
+            <button class="btn btn-fill" style="width:100%;justify-content:center;margin-top:8px" onclick="saveKeyFromModal()">Connect AI</button>
+            <div class="key-error" id="keyError" style="display:none"></div>
+            <p class="key-hint">Get a key at <a href="https://console.anthropic.com/" target="_blank" style="color:var(--terra);text-decoration:underline">console.anthropic.com</a></p>
         </div>
     </div>
 

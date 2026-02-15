@@ -479,22 +479,53 @@ function updateApiStatus(online) {
         el.innerHTML = '<span class="status-dot"></span><span>AI Online</span>';
     } else {
         el.className = 'api-status error';
-        el.innerHTML = `<span class="status-dot"></span><span style="cursor:pointer" onclick="promptApiKey()">Set API Key</span>`;
+        el.innerHTML = '<span class="status-dot"></span><span>Set API Key</span>';
     }
 }
 
 function promptApiKey() {
-    const key = prompt('Enter your Anthropic API key (starts with sk-ant-):');
-    if (key && key.startsWith('sk-')) {
-        setApiKey(key);
-        updateApiStatus(true);
-        checkApiHealth();
-    }
+    const modal = document.getElementById('keyModal');
+    modal.classList.add('active');
+    setTimeout(() => document.getElementById('keyInput').focus(), 100);
 }
+
+function saveKeyFromModal() {
+    const input = document.getElementById('keyInput');
+    const key = input.value.trim();
+    const errEl = document.getElementById('keyError');
+
+    if (!key || !key.startsWith('sk-')) {
+        errEl.style.display = 'block';
+        errEl.textContent = 'Please enter a valid Anthropic API key (starts with sk-)';
+        return;
+    }
+
+    errEl.style.display = 'none';
+    setApiKey(key);
+    document.getElementById('keyModal').classList.remove('active');
+    updateApiStatus(true);
+    checkApiHealth();
+}
+
+// Also allow Enter in key input
+document.addEventListener('DOMContentLoaded', () => {
+    const ki = document.getElementById('keyInput');
+    if (ki) ki.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveKeyFromModal(); });
+});
 
 async function checkApiHealth() {
     const key = getApiKey();
-    if (!key) { updateApiStatus(false); return; }
+    if (!key) {
+        updateApiStatus(false);
+        // Show modal automatically if no key
+        setTimeout(() => {
+            const modal = document.getElementById('keyModal');
+            if (modal && !modal.classList.contains('active')) {
+                modal.classList.add('active');
+            }
+        }, 500);
+        return;
+    }
     try {
         const r = await fetch(API_URL, {
             method: 'POST',
@@ -507,7 +538,10 @@ async function checkApiHealth() {
             body: JSON.stringify({ model: MODEL, max_tokens: 10, messages: [{ role: 'user', content: 'ping' }] })
         });
         updateApiStatus(r.ok);
-        if (!r.ok && r.status === 401) { localStorage.removeItem('medai_api_key'); }
+        if (!r.ok && r.status === 401) {
+            localStorage.removeItem('medai_api_key');
+            updateApiStatus(false);
+        }
     } catch { updateApiStatus(false); }
 }
 
